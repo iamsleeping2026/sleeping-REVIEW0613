@@ -404,6 +404,44 @@
       height: 100%;
       object-fit: contain;
       background: #02050d;
+      transform: scale(1);
+      filter: saturate(1.05) brightness(0.96);
+    }
+
+    .ending-scene.active .ending-image {
+      animation: cinematicMove 4.8s linear forwards;
+    }
+
+    .ending-scene:nth-of-type(2).active .ending-image {
+      animation-name: cinematicMoveRight;
+    }
+
+    .ending-scene:nth-of-type(3).active .ending-image {
+      animation-name: cinematicMoveLeft;
+    }
+
+    .ending-scene:nth-of-type(4).active .ending-image {
+      animation-name: cinematicMoveUp;
+    }
+
+    @keyframes cinematicMove {
+      from { transform: scale(1); filter: saturate(1.02) brightness(0.95); }
+      to { transform: scale(1.075); filter: saturate(1.18) brightness(1.05); }
+    }
+
+    @keyframes cinematicMoveRight {
+      from { transform: scale(1.02) translateX(-1.2%); filter: saturate(1.05) brightness(0.96); }
+      to { transform: scale(1.09) translateX(1.2%); filter: saturate(1.2) brightness(1.08); }
+    }
+
+    @keyframes cinematicMoveLeft {
+      from { transform: scale(1.02) translateX(1.4%); filter: saturate(1.04) brightness(0.96); }
+      to { transform: scale(1.085) translateX(-1.2%); filter: saturate(1.18) brightness(1.06); }
+    }
+
+    @keyframes cinematicMoveUp {
+      from { transform: scale(1.01) translateY(1.2%); filter: saturate(1.03) brightness(0.95); }
+      to { transform: scale(1.08) translateY(-1.2%); filter: saturate(1.16) brightness(1.07); }
     }
 
     .gate-arc {
@@ -563,7 +601,28 @@
       box-shadow: 0 18px 50px rgba(0,0,0,0.4);
       backdrop-filter: blur(10px);
       text-align: center;
+    }
+
+    .ending-caption.playing {
       animation: captionIn 0.7s ease both;
+    }
+
+    .ending-caption::after {
+      content: "";
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 10px;
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--blue), var(--gold));
+      box-shadow: 0 0 14px rgba(102, 217, 255, 0.5);
+      transform-origin: left center;
+      transform: scaleX(0);
+    }
+
+    .ending-caption.playing::after {
+      animation: endingProgress 4.8s linear forwards;
     }
 
     .ending-caption h2 {
@@ -589,6 +648,11 @@
     @keyframes captionIn {
       from { opacity: 0; transform: translate(-50%, 12px); }
       to { opacity: 1; transform: translate(-50%, 0); }
+    }
+
+    @keyframes endingProgress {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
     }
 
     @media (max-width: 780px) {
@@ -750,6 +814,7 @@
     let placed = {};
     let activeCert = null;
     let endingIndex = 0;
+    let endingTimer = null;
     const ENDING_STORY = [
       { title: "三枚憑證歸位", text: "三段旅程沒有消失，它們只是安靜地回到門上。" },
       { title: "大門打開", text: "真正被打開的，從來不只是門。" },
@@ -883,16 +948,27 @@
     }
 
     function renderEndingScene() {
+      clearTimeout(endingTimer);
       const scene = ENDING_STORY[endingIndex];
       endingScenes.forEach((panel, index) => {
         panel.classList.toggle("active", index === endingIndex);
       });
       endingTitle.textContent = endingIndex === 0 ? `三印啟門｜${scene.title}` : scene.title;
       endingText.textContent = scene.text;
+      restartCaptionAnimation();
+      endingTimer = setTimeout(advanceEnding, 4800);
+    }
+
+    function restartCaptionAnimation() {
+      const caption = document.querySelector("#endingCaption");
+      caption.classList.remove("playing");
+      caption.offsetWidth;
+      caption.classList.add("playing");
     }
 
     function advanceEnding() {
       if (!ending.classList.contains("show")) return;
+      clearTimeout(endingTimer);
       endingIndex += 1;
       if (endingIndex >= ENDING_STORY.length) {
         ending.classList.remove("show");
@@ -903,6 +979,7 @@
     }
 
     function showAdventureComplete() {
+      clearTimeout(endingTimer);
       doorBody.classList.add("hide");
       win.classList.add("show");
     }
@@ -948,6 +1025,7 @@
     }
 
     function clearAdventure() {
+      clearTimeout(endingTimer);
       localStorage.clear();
       sessionStorage.clear();
       ensureStartTime();
