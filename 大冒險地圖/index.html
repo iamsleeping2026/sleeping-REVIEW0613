@@ -824,6 +824,7 @@
 
     function initCover() {
       if (sessionStorage.getItem("cover_seen") === "true") {
+        ensureStartTime();
         cover.classList.add("hide");
         return;
       }
@@ -832,6 +833,7 @@
 
     function hideCover() {
       sessionStorage.setItem("cover_seen", "true");
+      ensureStartTime();
       cover.classList.add("hide");
     }
 
@@ -846,7 +848,6 @@
     }
 
     function renderMap() {
-      ensureStartTime();
       const count = LEVELS.filter(hasCert).length;
       certCountEl.textContent = count;
       LEVELS.forEach(level => {
@@ -856,6 +857,7 @@
     }
 
     function openGate() {
+      ensureStartTime();
       placed = {};
       doorBody.classList.remove("hide");
       win.classList.remove("show");
@@ -1028,7 +1030,6 @@
       clearTimeout(endingTimer);
       localStorage.clear();
       sessionStorage.clear();
-      ensureStartTime();
       renderMap();
       modal.classList.remove("show");
       cover.classList.remove("hide");
@@ -1039,6 +1040,9 @@
     document.querySelector("#closeModal").addEventListener("click", () => modal.classList.remove("show"));
     document.querySelector("#clearProgress").addEventListener("click", clearAdventure);
     document.querySelector("#restartAdventure").addEventListener("click", clearAdventure);
+    document.querySelectorAll(".hotspot[href]").forEach(link => {
+      link.addEventListener("click", ensureStartTime);
+    });
     ending.addEventListener("click", advanceEnding);
     modal.addEventListener("click", event => {
       if (event.target === modal) modal.classList.remove("show");
