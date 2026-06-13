@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>理化大冒險地圖</title>
+  <style>
+    :root {
+      --bg: #050914;
+      --panel: rgba(10, 18, 34, 0.86);
+      --text: #f7fbff;
+      --muted: #aeb9d1;
+      --gold: #ffd25a;
+      --green: #45d979;
+      --red: #ff5268;
+      --blue: #66d9ff;
+      --line: rgba(255,255,255,0.16);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Microsoft JhengHei", "Noto Sans TC", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 12%, rgba(102, 217, 255, 0.18), transparent 24rem),
+        radial-gradient(circle at 82% 20%, rgba(255, 210, 90, 0.16), transparent 24rem),
+        linear-gradient(135deg, #040711, #0b1020 55%, #03050b);
+      overflow: hidden;
+    }
+
+    button { font: inherit; }
+
+    .cover {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      z-index: 50;
+      background: #02050c;
+      cursor: pointer;
+      transition: opacity 0.7s ease, visibility 0.7s ease;
+    }
+
+    .cover.hide {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .cover-tip {
+      position: fixed;
+      left: 50%;
+      bottom: 5vh;
+      transform: translateX(-50%);
+      padding: 10px 16px;
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 999px;
+      background: rgba(0,0,0,0.42);
+      color: var(--text);
+      font-weight: 900;
+      text-shadow: 0 0 12px rgba(102,217,255,0.9);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      50% { opacity: 0.48; }
+    }
+
+    .app {
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      padding: 16px;
+      gap: 12px;
+    }
+
+    header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--panel);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.34);
+      backdrop-filter: blur(8px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.5rem, 3vw, 2.8rem);
+      letter-spacing: 0;
+    }
+
+    .lead {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .hud {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: end;
+    }
+
+    .count {
+      padding: 10px 14px;
+      border: 1px solid rgba(255, 210, 90, 0.42);
+      border-radius: 14px;
+      color: var(--gold);
+      background: rgba(255, 210, 90, 0.1);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .reset {
+      min-height: 42px;
+      padding: 0 14px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 14px;
+      color: var(--text);
+      background: rgba(255,255,255,0.08);
+      cursor: pointer;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .map-stage {
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(102, 217, 255, 0.2);
+      border-radius: 18px;
+      background: rgba(0,0,0,0.18);
+      overflow: hidden;
+    }
+
+    .map-wrap {
+      position: relative;
+      width: min(100%, calc((100vh - 126px) * 1672 / 941));
+      max-width: 100%;
+      aspect-ratio: 1672 / 941;
+    }
+
+    .map-img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .hotspot {
+      position: absolute;
+      border: 2px solid transparent;
+      border-radius: 18px;
+      cursor: pointer;
+      background: rgba(102, 217, 255, 0);
+      transition: background 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+
+    .hotspot:hover,
+    .hotspot:focus-visible {
+      outline: none;
+      border-color: rgba(102, 217, 255, 0.45);
+      background: rgba(102, 217, 255, 0.11);
+      box-shadow: 0 0 30px rgba(102, 217, 255, 0.36);
+    }
+
+    .hot-dynasty { left: 11.5%; top: 32.3%; width: 14.6%; height: 7.6%; }
+    .hot-idiom { left: 76.1%; top: 37.0%; width: 15.2%; height: 7.8%; }
+    .hot-warrior { left: 7.6%; top: 82.0%; width: 17.4%; height: 8.2%; }
+    .hot-gate { left: 39.8%; top: 61.5%; width: 22.2%; height: 13.3%; }
+
+    .stamp {
+      position: absolute;
+      width: clamp(30px, 4vw, 58px);
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border: 3px solid rgba(69, 217, 121, 0.9);
+      border-radius: 50%;
+      color: var(--green);
+      background: rgba(3, 18, 10, 0.78);
+      font-size: clamp(1.2rem, 2.6vw, 2rem);
+      font-weight: 900;
+      box-shadow: 0 0 22px rgba(69, 217, 121, 0.6);
+      pointer-events: none;
+    }
+
+    .stamp-dynasty { left: 24.4%; top: 31.1%; }
+    .stamp-idiom { left: 90.0%; top: 35.7%; }
+    .stamp-warrior { left: 22.8%; top: 80.4%; }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background: rgba(0,0,0,0.66);
+      backdrop-filter: blur(8px);
+      z-index: 20;
+    }
+
+    .modal.show { display: grid; }
+
+    .door {
+      width: min(960px, 100%);
+      max-height: calc(100vh - 40px);
+      overflow: auto;
+      padding: 22px;
+      border: 1px solid rgba(255, 210, 90, 0.36);
+      border-radius: 22px;
+      background: linear-gradient(160deg, #27304a, #121827);
+      box-shadow: 0 26px 80px rgba(0,0,0,0.58);
+    }
+
+    .door-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .door h2,
+    .win h2 {
+      margin: 0;
+      font-size: clamp(1.6rem, 4vw, 2.5rem);
+    }
+
+    .close {
+      width: 44px;
+      height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--text);
+      background: rgba(255,255,255,0.08);
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    .slots,
+    .bag {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .slot {
+      min-height: 150px;
+      display: grid;
+      place-items: center;
+      padding: 14px;
+      border: 2px dashed rgba(255, 210, 90, 0.42);
+      border-radius: 18px;
+      color: var(--muted);
+      background: rgba(0,0,0,0.18);
+      text-align: center;
+      font-weight: 900;
+    }
+
+    .slot.over { box-shadow: 0 0 24px rgba(102, 217, 255, 0.25); }
+    .slot.correct {
+      border-style: solid;
+      border-color: var(--green);
+      background: rgba(69, 217, 121, 0.16);
+    }
+    .slot.wrong { animation: wrong 0.28s ease; }
+
+    @keyframes wrong {
+      25% { transform: translateX(-7px); box-shadow: 0 0 24px rgba(255, 82, 104, 0.5); }
+      50% { transform: translateX(7px); }
+      75% { transform: translateX(-4px); }
+    }
+
+    .section-title {
+      margin: 18px 0 10px;
+      color: var(--gold);
+      font-weight: 900;
+    }
+
+    .cert {
+      min-height: 78px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid rgba(255, 210, 90, 0.45);
+      border-radius: 16px;
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(255, 210, 90, 0.18), rgba(255,255,255,0.08));
+      cursor: grab;
+      font-weight: 900;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .cert.placed {
+      border-color: var(--green);
+      background: rgba(69, 217, 121, 0.24);
+      cursor: default;
+    }
+
+    .cert.dragging {
+      position: fixed;
+      z-index: 40;
+      width: 170px;
+      pointer-events: none;
+      transform: translate(-50%, -50%) scale(1.04);
+    }
+
+    .empty {
+      min-height: 78px;
+      display: grid;
+      place-items: center;
+      border: 1px dashed var(--line);
+      border-radius: 16px;
+      color: var(--muted);
+    }
+
+    .win {
+      display: none;
+      padding: 28px;
+      text-align: center;
+      border: 1px solid rgba(255, 210, 90, 0.4);
+      border-radius: 20px;
+      background: radial-gradient(circle at 50% 0%, rgba(255,210,90,0.26), transparent 16rem), rgba(20, 26, 42, 0.94);
+    }
+
+    .win.show { display: block; }
+    .door-body.hide { display: none; }
+
+    @media (max-width: 780px) {
+      body { overflow: auto; }
+
+      .app {
+        min-height: 100vh;
+        height: auto;
+        padding: 10px;
+        grid-template-rows: auto auto;
+      }
+
+      header {
+        display: block;
+      }
+
+      .hud {
+        justify-content: start;
+        margin-top: 10px;
+      }
+
+      .map-wrap {
+        width: 100%;
+      }
+
+      .slots,
+      .bag {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="cover" id="cover" aria-label="遊戲開場封面">
+    <img src="cover.png" alt="理化大冒險開場封面">
+    <div class="cover-tip">點擊任意處開始</div>
+  </div>
+
+  <div class="app">
+    <header>
+      <div>
+        <h1>理化大冒險地圖</h1>
+        <p class="lead">完成 3 個關卡，拿到 3 個憑證解開大門</p>
+      </div>
+      <div class="hud">
+        <div class="count">持有 <span id="certCount">0</span> / 3</div>
+        <button class="reset" id="clearProgress" type="button">🔄 清除進度</button>
+      </div>
+    </header>
+
+    <main class="map-stage">
+      <div class="map-wrap" id="mapWrap">
+        <img class="map-img" src="map-bg.png" alt="理化大冒險地圖">
+        <a class="hotspot hot-dynasty" href="../示範1_朝代配對/index.html" aria-label="前往朝代配對站"></a>
+        <a class="hotspot hot-idiom" href="../示範2_成語填字/index.html" aria-label="前往成語填字艙"></a>
+        <a class="hotspot hot-warrior" href="../示範3_打怪RPG/index.html" aria-label="前往 RPG 戰鬥域"></a>
+        <button class="hotspot hot-gate" id="openGate" type="button" aria-label="開啟中央權限之門"></button>
+        <div class="stamp stamp-dynasty" data-stamp="dynasty">✓</div>
+        <div class="stamp stamp-idiom" data-stamp="idiom">✓</div>
+        <div class="stamp stamp-warrior" data-stamp="warrior">✓</div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal" id="modal">
+    <section class="door" aria-label="通關大門">
+      <div class="door-head">
+        <h2>通關大門</h2>
+        <button class="close" id="closeModal" type="button">×</button>
+      </div>
+
+      <div class="door-body" id="doorBody">
+        <div class="slots" id="slots"></div>
+        <div class="section-title">背包憑證</div>
+        <div class="bag" id="certBag"></div>
+      </div>
+
+      <div class="win" id="win">
+        <h2>🏆 冒險完成！</h2>
+        <p>總冒險時長：<strong id="duration">00 分 00 秒</strong></p>
+        <button class="gate-btn reset" id="restartAdventure" type="button">再次冒險</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const LEVELS = [
+      { id: "dynasty", key: "cert_dynasty", icon: "🎴", href: "../示範1_朝代配對/index.html", cert: "朝代之印", label: "朝代" },
+      { id: "idiom", key: "cert_idiom", icon: "📝", href: "../示範2_成語填字/index.html", cert: "成語之印", label: "成語" },
+      { id: "warrior", key: "cert_warrior", icon: "⚔️", href: "../示範3_打怪RPG/index.html", cert: "勇者之印", label: "勇者" }
+    ];
+
+    const cover = document.querySelector("#cover");
+    const certCountEl = document.querySelector("#certCount");
+    const modal = document.querySelector("#modal");
+    const slotsEl = document.querySelector("#slots");
+    const certBag = document.querySelector("#certBag");
+    const doorBody = document.querySelector("#doorBody");
+    const win = document.querySelector("#win");
+    const duration = document.querySelector("#duration");
+    let placed = {};
+    let activeCert = null;
+
+    function initCover() {
+      if (sessionStorage.getItem("cover_seen") === "true") {
+        cover.classList.add("hide");
+        return;
+      }
+      cover.addEventListener("click", hideCover, { once: true });
+    }
+
+    function hideCover() {
+      sessionStorage.setItem("cover_seen", "true");
+      cover.classList.add("hide");
+    }
+
+    function ensureStartTime() {
+      if (!localStorage.getItem("adventure_start")) {
+        localStorage.setItem("adventure_start", String(Date.now()));
+      }
+    }
+
+    function hasCert(level) {
+      return localStorage.getItem(level.key) === "true";
+    }
+
+    function renderMap() {
+      ensureStartTime();
+      const count = LEVELS.filter(hasCert).length;
+      certCountEl.textContent = count;
+      LEVELS.forEach(level => {
+        const stamp = document.querySelector(`[data-stamp="${level.id}"]`);
+        if (stamp) stamp.hidden = !hasCert(level);
+      });
+    }
+
+    function openGate() {
+      placed = {};
+      doorBody.classList.remove("hide");
+      win.classList.remove("show");
+      renderDoor();
+      modal.classList.add("show");
+    }
+
+    function renderDoor() {
+      slotsEl.innerHTML = "";
+      certBag.innerHTML = "";
+      LEVELS.forEach(level => {
+        const slot = document.createElement("div");
+        slot.className = "slot";
+        slot.dataset.slot = level.id;
+        slot.textContent = `${level.label} 凹槽`;
+        setupSlot(slot);
+        slotsEl.appendChild(slot);
+      });
+
+      const owned = LEVELS.filter(hasCert);
+      if (owned.length === 0) {
+        certBag.innerHTML = `<div class="empty">尚未取得憑證，仍可先看看大門。</div>`;
+        return;
+      }
+      owned.forEach(level => certBag.appendChild(createCert(level)));
+    }
+
+    function createCert(level) {
+      const cert = document.createElement("div");
+      cert.className = "cert";
+      cert.draggable = true;
+      cert.dataset.cert = level.id;
+      cert.innerHTML = `<span>${level.icon}</span><span>${level.cert}</span>`;
+      cert.addEventListener("dragstart", event => {
+        event.dataTransfer.setData("text/plain", level.id);
+        event.dataTransfer.effectAllowed = "move";
+      });
+      cert.addEventListener("pointerdown", event => startPointerDrag(event, cert));
+      return cert;
+    }
+
+    function setupSlot(slot) {
+      slot.addEventListener("dragover", event => {
+        event.preventDefault();
+        slot.classList.add("over");
+      });
+      slot.addEventListener("dragleave", () => slot.classList.remove("over"));
+      slot.addEventListener("drop", event => {
+        event.preventDefault();
+        slot.classList.remove("over");
+        const certId = event.dataTransfer.getData("text/plain");
+        const cert = document.querySelector(`.cert[data-cert="${certId}"]`);
+        placeCert(cert, slot);
+      });
+    }
+
+    function placeCert(cert, slot) {
+      if (!cert || cert.classList.contains("placed")) return;
+      if (cert.dataset.cert !== slot.dataset.slot) {
+        slot.classList.remove("wrong");
+        slot.offsetWidth;
+        slot.classList.add("wrong");
+        setTimeout(() => slot.classList.remove("wrong"), 300);
+        return;
+      }
+      placed[slot.dataset.slot] = true;
+      slot.classList.add("correct");
+      slot.innerHTML = "";
+      cert.classList.add("placed");
+      cert.draggable = false;
+      slot.appendChild(cert);
+      if (Object.keys(placed).length === 3) completeAdventure();
+    }
+
+    function completeAdventure() {
+      const started = Number(localStorage.getItem("adventure_start")) || Date.now();
+      const seconds = Math.max(0, Math.floor((Date.now() - started) / 1000));
+      const mins = String(Math.floor(seconds / 60)).padStart(2, "0");
+      const secs = String(seconds % 60).padStart(2, "0");
+      duration.textContent = `${mins} 分 ${secs} 秒`;
+      doorBody.classList.add("hide");
+      win.classList.add("show");
+    }
+
+    function startPointerDrag(event, cert) {
+      if (cert.classList.contains("placed")) return;
+      event.preventDefault();
+      activeCert = { cert, home: cert.parentElement, next: cert.nextSibling };
+      const rect = cert.getBoundingClientRect();
+      cert.style.left = `${rect.left + rect.width / 2}px`;
+      cert.style.top = `${rect.top + rect.height / 2}px`;
+      cert.classList.add("dragging");
+      document.body.appendChild(cert);
+      movePointerDrag(event);
+      window.addEventListener("pointermove", movePointerDrag);
+      window.addEventListener("pointerup", endPointerDrag, { once: true });
+    }
+
+    function movePointerDrag(event) {
+      if (!activeCert) return;
+      activeCert.cert.style.left = `${event.clientX}px`;
+      activeCert.cert.style.top = `${event.clientY}px`;
+      document.querySelectorAll(".slot").forEach(slot => slot.classList.remove("over"));
+      const target = document.elementFromPoint(event.clientX, event.clientY);
+      const slot = target && target.closest(".slot");
+      if (slot && !slot.classList.contains("correct")) slot.classList.add("over");
+    }
+
+    function endPointerDrag(event) {
+      if (!activeCert) return;
+      const { cert, home, next } = activeCert;
+      document.querySelectorAll(".slot").forEach(slot => slot.classList.remove("over"));
+      cert.classList.remove("dragging");
+      cert.style.left = "";
+      cert.style.top = "";
+      if (next && next.parentElement === home) home.insertBefore(cert, next);
+      else home.appendChild(cert);
+      const target = document.elementFromPoint(event.clientX, event.clientY);
+      const slot = target && target.closest(".slot");
+      if (slot) placeCert(cert, slot);
+      activeCert = null;
+      window.removeEventListener("pointermove", movePointerDrag);
+    }
+
+    function clearAdventure() {
+      localStorage.clear();
+      sessionStorage.clear();
+      ensureStartTime();
+      renderMap();
+      modal.classList.remove("show");
+      cover.classList.remove("hide");
+      cover.addEventListener("click", hideCover, { once: true });
+    }
+
+    document.querySelector("#openGate").addEventListener("click", openGate);
+    document.querySelector("#closeModal").addEventListener("click", () => modal.classList.remove("show"));
+    document.querySelector("#clearProgress").addEventListener("click", clearAdventure);
+    document.querySelector("#restartAdventure").addEventListener("click", clearAdventure);
+    modal.addEventListener("click", event => {
+      if (event.target === modal) modal.classList.remove("show");
+    });
+
+    initCover();
+    renderMap();
+  </script>
+</body>
+</html>

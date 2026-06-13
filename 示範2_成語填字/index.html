@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>成語填字</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #ead8ad;
+      --paper-light: #f6e9c7;
+      --ink: #23170d;
+      --muted: #806944;
+      --red: #b2291f;
+      --red-dark: #7d1814;
+      --green: #4f8d4b;
+      --wood: #d7b071;
+      --line: rgba(116, 72, 28, 0.26);
+      --shadow: rgba(77, 45, 16, 0.24);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Noto Serif TC", "PMingLiU", "MingLiU", serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 10%, rgba(178, 41, 31, 0.08), transparent 22rem),
+        radial-gradient(circle at 85% 86%, rgba(116, 72, 28, 0.1), transparent 28rem),
+        var(--paper);
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(90deg, rgba(116, 72, 28, 0.045) 1px, transparent 1px),
+        linear-gradient(rgba(116, 72, 28, 0.035) 1px, transparent 1px);
+      background-size: 34px 34px;
+      opacity: 0.8;
+    }
+
+    .map-link {
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      z-index: 20;
+      padding: 9px 13px;
+      border: 2px solid var(--red);
+      border-radius: 8px;
+      color: #fff7e8;
+      background: rgba(125, 24, 20, 0.9);
+      text-decoration: none;
+      font-weight: 900;
+      box-shadow: 0 10px 24px rgba(77, 45, 16, 0.24);
+    }
+
+    .app {
+      position: relative;
+      width: min(1060px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 28px 0 34px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 18px;
+      margin-bottom: 18px;
+      padding: 22px 24px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0)),
+        rgba(246, 233, 199, 0.78);
+      box-shadow: 0 18px 44px var(--shadow);
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--red-dark);
+      font-size: clamp(2rem, 5vw, 3.8rem);
+      letter-spacing: 0.14em;
+      font-weight: 900;
+    }
+
+    .subtitle {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .progress {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: end;
+    }
+
+    .seal {
+      min-width: 108px;
+      padding: 10px 14px;
+      border: 2px solid var(--red);
+      border-radius: 8px;
+      color: var(--red-dark);
+      background: rgba(255, 255, 255, 0.22);
+      text-align: center;
+      font-weight: 900;
+      box-shadow: inset 0 0 0 2px rgba(178, 41, 31, 0.08);
+    }
+
+    .stage {
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08)),
+        rgba(246, 233, 199, 0.84);
+      box-shadow: 0 20px 52px var(--shadow);
+    }
+
+    .idiom {
+      display: flex;
+      justify-content: center;
+      gap: clamp(8px, 2vw, 18px);
+      margin: 10px 0 24px;
+      flex-wrap: wrap;
+    }
+
+    .char,
+    .blank {
+      display: grid;
+      width: clamp(64px, 13vw, 116px);
+      aspect-ratio: 1;
+      place-items: center;
+      font-size: clamp(2.25rem, 8vw, 5rem);
+      font-weight: 900;
+      border-radius: 8px;
+    }
+
+    .char {
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .blank {
+      position: relative;
+      border: 3px solid var(--red);
+      color: rgba(178, 41, 31, 0.38);
+      background: rgba(255, 246, 224, 0.72);
+      box-shadow: inset 0 0 0 1px rgba(178, 41, 31, 0.14);
+    }
+
+    .blank::before,
+    .blank::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.28;
+    }
+
+    .blank::before {
+      background:
+        linear-gradient(45deg, transparent calc(50% - 1px), var(--red) 50%, transparent calc(50% + 1px)),
+        linear-gradient(-45deg, transparent calc(50% - 1px), var(--red) 50%, transparent calc(50% + 1px));
+    }
+
+    .blank::after {
+      border-left: 1px solid var(--red);
+      border-top: 1px solid var(--red);
+      transform: translate(50%, 50%);
+      width: 50%;
+      height: 50%;
+    }
+
+    .blank.over {
+      background: rgba(178, 41, 31, 0.12);
+      box-shadow: 0 0 18px rgba(178, 41, 31, 0.28);
+    }
+
+    .blank.correct {
+      color: var(--red);
+      background: rgba(255, 246, 224, 0.92);
+      text-shadow: 0 2px 0 rgba(125, 24, 20, 0.08);
+      animation: stamp 0.2s ease;
+    }
+
+    @keyframes stamp {
+      from {
+        transform: scale(1.28) rotate(-3deg);
+        opacity: 0.35;
+      }
+      to {
+        transform: scale(1) rotate(0);
+        opacity: 1;
+      }
+    }
+
+    .feedback {
+      min-height: 124px;
+      margin: 0 auto 20px;
+      padding: 16px 18px;
+      border: 1px dashed rgba(116, 72, 28, 0.36);
+      border-radius: 8px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.18);
+      text-align: center;
+    }
+
+    .feedback.done {
+      border-color: rgba(79, 141, 75, 0.55);
+      color: var(--ink);
+      background: rgba(79, 141, 75, 0.1);
+    }
+
+    .feedback h2 {
+      margin: 0 0 6px;
+      color: var(--green);
+      font-size: 1.8rem;
+    }
+
+    .feedback p {
+      margin: 0;
+      font-size: 1.08rem;
+      font-weight: 700;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 22px;
+    }
+
+    button {
+      min-height: 48px;
+      padding: 0 24px;
+      border: 2px solid var(--red);
+      border-radius: 8px;
+      color: #fff7e8;
+      background: linear-gradient(180deg, var(--red), var(--red-dark));
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 12px 24px rgba(125, 24, 20, 0.22);
+    }
+
+    button[hidden] {
+      display: none;
+    }
+
+    .card-area {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid rgba(116, 72, 28, 0.28);
+      border-radius: 8px;
+      background: rgba(116, 72, 28, 0.08);
+    }
+
+    .word-card {
+      min-height: 58px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(116, 72, 28, 0.36);
+      border-radius: 8px;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(130, 82, 35, 0.08), transparent 22%, rgba(130, 82, 35, 0.1) 48%, transparent 72%),
+        linear-gradient(180deg, #ead09a, var(--wood));
+      font-size: 1.65rem;
+      font-weight: 900;
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+      box-shadow: 0 8px 16px rgba(77, 45, 16, 0.16);
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .word-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 20px rgba(77, 45, 16, 0.22);
+    }
+
+    .word-card.dragging {
+      position: fixed;
+      z-index: 30;
+      width: 72px;
+      pointer-events: none;
+      transform: translate(-50%, -50%) scale(1.06);
+      box-shadow: 0 20px 34px rgba(77, 45, 16, 0.32);
+    }
+
+    .word-card.used {
+      opacity: 0.28;
+      pointer-events: none;
+    }
+
+    .word-card.wrong {
+      animation: wrongFlash 0.2s ease;
+    }
+
+    @keyframes wrongFlash {
+      0%, 100% {
+        box-shadow: 0 8px 16px rgba(77, 45, 16, 0.16);
+      }
+      50% {
+        transform: translateX(6px);
+        border-color: var(--red);
+        box-shadow: 0 0 18px rgba(178, 41, 31, 0.62);
+        background: #e68a79;
+      }
+    }
+
+    .result {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 24px;
+      background: rgba(35, 23, 13, 0.5);
+      backdrop-filter: blur(6px);
+      z-index: 20;
+    }
+
+    .result.show {
+      display: grid;
+    }
+
+    .result-card {
+      width: min(92vw, 430px);
+      padding: 30px;
+      border: 3px double var(--red);
+      border-radius: 8px;
+      background: var(--paper-light);
+      box-shadow: 0 28px 70px rgba(77, 45, 16, 0.36);
+      text-align: center;
+    }
+
+    .result-card h2 {
+      margin: 0 0 8px;
+      color: var(--red-dark);
+      font-size: 2.4rem;
+    }
+
+    .result-card p {
+      margin: 0 0 22px;
+      color: var(--muted);
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        width: min(100% - 18px, 620px);
+        padding-top: 12px;
+      }
+
+      header {
+        display: block;
+        padding: 18px;
+      }
+
+      .progress {
+        justify-content: start;
+        margin-top: 12px;
+      }
+
+      .stage {
+        padding: 16px;
+      }
+
+      .card-area {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 9px;
+        padding: 12px;
+      }
+
+      .word-card {
+        min-height: 54px;
+        font-size: 1.45rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="map-link" href="../大冒險地圖/index.html" onclick="sessionStorage.setItem('cover_seen','true')">← 回到大地圖</a>
+  <div class="app">
+    <header>
+      <div>
+        <h1>成語填字</h1>
+        <p class="subtitle">拖曳字卡，補完成語中的空格。</p>
+      </div>
+      <div class="progress">
+        <div class="seal">題目 <span id="roundNow">1</span>/5</div>
+        <div class="seal">答對 <span id="score">0</span></div>
+      </div>
+    </header>
+
+    <main class="stage">
+      <section class="idiom" id="idiom" aria-label="成語題目"></section>
+
+      <section class="feedback" id="feedback">
+        將下方正確的字拖到紅色米字格中。
+      </section>
+
+      <div class="actions">
+        <button id="nextBtn" type="button" hidden>下一題</button>
+      </div>
+
+      <section class="card-area" id="cardArea" aria-label="字卡區"></section>
+    </main>
+  </div>
+
+  <div class="result" id="result">
+    <div class="result-card">
+      <h2>挑戰完成</h2>
+      <p>總成績：<strong id="finalScore">0</strong> / 5</p>
+      <button type="button" id="restartBtn">重新挑戰</button>
+    </div>
+  </div>
+
+  <script>
+    const QUESTIONS = [
+      { 成語: "一鳴驚人", 缺字: [1, 2], 答案: ["鳴", "驚"], 意思: "比喻平時默默無聞，突然有驚人表現。" },
+      { 成語: "風花雪月", 缺字: [1, 3], 答案: ["花", "月"], 意思: "原指四時景色，後比喻浮華空洞的詩文。" },
+      { 成語: "三番五次", 缺字: [1, 3], 答案: ["番", "次"], 意思: "形容次數很多。" },
+      { 成語: "一字千金", 缺字: [1, 3], 答案: ["字", "金"], 意思: "形容文字價值極高。" },
+      { 成語: "畫龍點睛", 缺字: [1, 3], 答案: ["龍", "睛"], 意思: "比喻在關鍵處點明要旨。" },
+      { 成語: "守株待兔", 缺字: [1, 3], 答案: ["株", "兔"], 意思: "比喻不知變通，只想僥倖得到成功。" },
+      { 成語: "亡羊補牢", 缺字: [1, 3], 答案: ["羊", "牢"], 意思: "比喻出了差錯後及時補救，仍不算太晚。" },
+      { 成語: "刻舟求劍", 缺字: [1, 3], 答案: ["舟", "劍"], 意思: "比喻拘泥成法，不知隨情勢改變。" },
+      { 成語: "狐假虎威", 缺字: [1, 3], 答案: ["假", "威"], 意思: "比喻仗著別人的勢力欺壓人。" },
+      { 成語: "井底之蛙", 缺字: [1, 3], 答案: ["底", "蛙"], 意思: "比喻見識狹小的人。" },
+      { 成語: "杯弓蛇影", 缺字: [1, 3], 答案: ["弓", "影"], 意思: "比喻疑神疑鬼，自相驚擾。" },
+      { 成語: "愚公移山", 缺字: [1, 3], 答案: ["公", "山"], 意思: "比喻有毅力地堅持到底，終能成功。" }
+    ];
+
+    const DISTRACTORS = "天地日月風雨山水花草鳥魚龍虎馬牛羊犬竹梅松雲雪雷電金木火土仁義禮智信春秋冬夏東西南北";
+
+    const idiomEl = document.querySelector("#idiom");
+    const cardArea = document.querySelector("#cardArea");
+    const feedback = document.querySelector("#feedback");
+    const nextBtn = document.querySelector("#nextBtn");
+    const roundNow = document.querySelector("#roundNow");
+    const scoreText = document.querySelector("#score");
+    const result = document.querySelector("#result");
+    const finalScore = document.querySelector("#finalScore");
+    const restartBtn = document.querySelector("#restartBtn");
+
+    let gameQuestions = [];
+    let currentIndex = 0;
+    let score = 0;
+    let filled = {};
+    let audioContext;
+    let activeCard = null;
+
+    function shuffle(items) {
+      const copied = [...items];
+      for (let i = copied.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copied[i], copied[j]] = [copied[j], copied[i]];
+      }
+      return copied;
+    }
+
+    function startGame() {
+      gameQuestions = shuffle(QUESTIONS).slice(0, 5);
+      currentIndex = 0;
+      score = 0;
+      result.classList.remove("show");
+      scoreText.textContent = score;
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      const question = gameQuestions[currentIndex];
+      filled = {};
+      nextBtn.hidden = true;
+      feedback.className = "feedback";
+      feedback.textContent = "將下方正確的字拖到紅色米字格中。";
+      roundNow.textContent = currentIndex + 1;
+      renderIdiom(question);
+      renderCards(question);
+    }
+
+    function renderIdiom(question) {
+      idiomEl.innerHTML = "";
+      [...question.成語].forEach((char, index) => {
+        const isBlank = question.缺字.includes(index);
+        const cell = document.createElement("div");
+        cell.className = isBlank ? "blank" : "char";
+        cell.textContent = isBlank ? "□" : char;
+        if (isBlank) {
+          const answerOrder = question.缺字.indexOf(index);
+          cell.dataset.answer = question.答案[answerOrder];
+          cell.dataset.blankIndex = String(answerOrder);
+          cell.addEventListener("dragover", event => {
+            event.preventDefault();
+            cell.classList.add("over");
+          });
+          cell.addEventListener("dragleave", () => cell.classList.remove("over"));
+          cell.addEventListener("drop", event => {
+            event.preventDefault();
+            cell.classList.remove("over");
+            const cardId = event.dataTransfer.getData("text/plain");
+            const card = document.querySelector(`[data-card-id="${cardId}"]`);
+            tryFill(card, cell);
+          });
+        }
+        idiomEl.appendChild(cell);
+      });
+    }
+
+    function renderCards(question) {
+      const answers = [...question.答案];
+      const forbidden = new Set([...question.成語]);
+      const distractors = [];
+      shuffle([...DISTRACTORS]).forEach(char => {
+        if (distractors.length < 13 && !answers.includes(char) && !forbidden.has(char) && !distractors.includes(char)) {
+          distractors.push(char);
+        }
+      });
+
+      const cards = shuffle([...answers, ...distractors]).map((char, index) => ({ char, id: `card-${currentIndex}-${index}-${char}` }));
+      cardArea.innerHTML = "";
+      cards.forEach(cardData => {
+        const card = document.createElement("div");
+        card.className = "word-card";
+        card.draggable = true;
+        card.textContent = cardData.char;
+        card.dataset.char = cardData.char;
+        card.dataset.cardId = cardData.id;
+
+        card.addEventListener("dragstart", event => {
+          ensureAudio();
+          event.dataTransfer.setData("text/plain", cardData.id);
+          event.dataTransfer.effectAllowed = "move";
+        });
+
+        card.addEventListener("pointerdown", event => startPointerDrag(event, card));
+        cardArea.appendChild(card);
+      });
+    }
+
+    function tryFill(card, blank) {
+      if (!card || card.classList.contains("used") || blank.classList.contains("correct")) return;
+
+      if (card.dataset.char === blank.dataset.answer) {
+        blank.textContent = card.dataset.char;
+        blank.classList.add("correct");
+        card.classList.add("used");
+        filled[blank.dataset.blankIndex] = true;
+        playBell();
+        checkAnswered();
+      } else {
+        flashWrong(card);
+      }
+    }
+
+    function checkAnswered() {
+      const question = gameQuestions[currentIndex];
+      if (Object.keys(filled).length !== question.缺字.length) return;
+
+      score += 1;
+      scoreText.textContent = score;
+      feedback.className = "feedback done";
+      feedback.innerHTML = `<h2>✓ 答對！</h2><p>${question.意思}</p>`;
+      nextBtn.textContent = currentIndex === 4 ? "看總成績" : "下一題";
+      nextBtn.hidden = false;
+    }
+
+    function flashWrong(card) {
+      playWrong();
+      card.classList.remove("wrong");
+      card.offsetWidth;
+      card.classList.add("wrong");
+      setTimeout(() => card.classList.remove("wrong"), 200);
+    }
+
+    function startPointerDrag(event, card) {
+      if (card.classList.contains("used")) return;
+      ensureAudio();
+      event.preventDefault();
+      activeCard = {
+        card,
+        home: card.parentElement,
+        next: card.nextSibling
+      };
+      const rect = card.getBoundingClientRect();
+      card.style.left = `${rect.left + rect.width / 2}px`;
+      card.style.top = `${rect.top + rect.height / 2}px`;
+      card.classList.add("dragging");
+      document.body.appendChild(card);
+      movePointerCard(event);
+      window.addEventListener("pointermove", movePointerCard);
+      window.addEventListener("pointerup", endPointerDrag, { once: true });
+    }
+
+    function movePointerCard(event) {
+      if (!activeCard) return;
+      activeCard.card.style.left = `${event.clientX}px`;
+      activeCard.card.style.top = `${event.clientY}px`;
+      document.querySelectorAll(".blank").forEach(blank => blank.classList.remove("over"));
+      const target = document.elementFromPoint(event.clientX, event.clientY);
+      const blank = target && target.closest(".blank");
+      if (blank && !blank.classList.contains("correct")) blank.classList.add("over");
+    }
+
+    function endPointerDrag(event) {
+      if (!activeCard) return;
+      const { card, home, next } = activeCard;
+      document.querySelectorAll(".blank").forEach(blank => blank.classList.remove("over"));
+      card.classList.remove("dragging");
+      card.style.left = "";
+      card.style.top = "";
+      if (next && next.parentElement === home) home.insertBefore(card, next);
+      else home.appendChild(card);
+
+      const target = document.elementFromPoint(event.clientX, event.clientY);
+      const blank = target && target.closest(".blank");
+      if (blank) tryFill(card, blank);
+      activeCard = null;
+      window.removeEventListener("pointermove", movePointerCard);
+    }
+
+    function ensureAudio() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioContext.state === "suspended") audioContext.resume();
+      return audioContext;
+    }
+
+    function tone(freq, duration, type, gainValue, delay = 0) {
+      const audio = ensureAudio();
+      const now = audio.currentTime + delay;
+      const oscillator = audio.createOscillator();
+      const gain = audio.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(gainValue, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      oscillator.connect(gain);
+      gain.connect(audio.destination);
+      oscillator.start(now);
+      oscillator.stop(now + duration + 0.02);
+    }
+
+    function playBell() {
+      tone(784, 0.12, "sine", 0.08);
+      tone(1175, 0.16, "sine", 0.055, 0.05);
+    }
+
+    function playWrong() {
+      tone(180, 0.12, "sawtooth", 0.05);
+    }
+
+    nextBtn.addEventListener("click", () => {
+      if (currentIndex === 4) {
+        localStorage.setItem("cert_idiom", "true");
+        finalScore.textContent = score;
+        result.classList.add("show");
+        restartBtn.focus();
+        return;
+      }
+      currentIndex += 1;
+      renderQuestion();
+    });
+
+    restartBtn.addEventListener("click", startGame);
+    startGame();
+  </script>
+</body>
+</html>
